@@ -5,7 +5,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: EKS cluster using a VPC with two public subnets
 Parameters:
-
   MaxNumWorkerNodes:
     Type: Number
     Description: The Min is one, Max Number of worker nodes to create
@@ -24,12 +23,10 @@ Parameters:
       # Add more instance types as needed
     ConstraintDescription: Must be a valid EC2 instance type    
   KeyPairName:
-    Type: String
-    #Type: AWS::EC2::KeyPair::KeyName
+    Type: AWS::EC2::KeyPair::KeyName     #Activate this for Release
     Description: Name of an existing EC2 key pair (for SSH-access to the worker node instances)
-    Default: LN-dev
+    Default: Select / Create one 
     ConstraintDescription: Must be the name of an existing EC2 KeyPair
-
 Mappings:
   VpcIpRanges:
     Option1:
@@ -51,14 +48,10 @@ Mappings:
     # us-west-2:
     #   Standard: ami-0f54a2f7d2e9c88b3
 
-
-
-    
 Resources:
   #============================================================================#
   # VPC
   #============================================================================#
-
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -198,11 +191,9 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable2
-
   #============================================================================#
   # Control plane
   #============================================================================#
-
   ControlPlane:
     Type: AWS::EKS::Cluster
     Properties:
@@ -233,7 +224,6 @@ Resources:
   #============================================================================#
   # Control plane security group
   #============================================================================#
-
   ControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -269,12 +259,10 @@ Resources:
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
-
   #============================================================================#
   # Worker nodes security group
   # Note: default egress rule (allow all traffic to all destinations) applies
   #============================================================================#
-
   WorkerNodesSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -285,7 +273,6 @@ Resources:
           Value: "owned"
         - Key: Name
           Value: !Sub "${AWS::StackName}-WorkerNodesSecurityGroup"
-
   WorkerNodesIngressFromWorkerNodes:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -314,7 +301,6 @@ Resources:
   #============================================================================#
   # Add-ons: kube-proxy
   #============================================================================#
-
   KubeProxyAddon:
     Type: AWS::EKS::Addon
     DependsOn: ControlPlane
@@ -340,7 +326,6 @@ Resources:
   #============================================================================#
   # Add-ons: CoreDNS
   #============================================================================#
-
   CoreDNS:
     Type: AWS::EKS::Addon
     DependsOn: ControlPlane
@@ -355,34 +340,18 @@ Resources:
   # #============================================================================#
   # # Add-ons: EBS - CSI
   # #============================================================================#
-  # EbsCsi:
-  #   Type: AWS::EKS::Addon
-  #   DependsOn: ControlPlane
-  #   Properties:
-  #     AddonName: ebs-csi
-  #     AddonVersion: v1.19.0-eksbuild.2
-  #     ClusterName: !Ref AWS::StackName
-  #     ResolveConflicts: OVERWRITE
-  #     ServiceAccountRoleArn: !GetAtt ControlPlaneRole.Arn
-  #     Tags:
-  #     - Key: eks_addon
-  #       Value: True  
-  # #============================================================================#    
-  EKSEBSCSIDriverRole:
-    Type: AWS::IAM::Role
+  EbsCsi:
+    Type: AWS::EKS::Addon
+    DependsOn: ControlPlane
     Properties:
-      RoleName: AmazonEKS_EBS_CSI_DriverRole
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - eks.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKS_EBS_CSI_Driver_Policy
-
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: v1.19.0-eksbuild.2
+      ClusterName: !Ref AWS::StackName
+      ResolveConflicts: OVERWRITE
+      ServiceAccountRoleArn: !GetAtt ControlPlaneRole.Arn
+      Tags:
+      - Key: eks_addon
+        Value: True  
   WorkerNodesRole:
     Type: AWS::IAM::Role
     Properties:
@@ -399,13 +368,11 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy     
-
   WorkerNodesInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - !Ref WorkerNodesRole
-
   WorkerNodesLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
@@ -444,7 +411,7 @@ Resources:
         - ControlPlane
         - KubeProxyAddon
         - VpcCni
-        # - EbsCsi
+        - EbsCsi
     Properties:
       ClusterName: !Sub "${AWS::StackName}"
       NodegroupName: WorkerNodegroup
@@ -463,16 +430,11 @@ Resources:
       Tags:
         Name: WorkerNodesLaunchTemplate
         Environment: Production
-        #   
-
+#
 Outputs:
   EIPAllocationId:
     Value: !GetAtt NatGateway1EIP.PublicIp
     Description: The Allocation ID of the EIP
-
-  EKSEBSCSIDriverRoleArn:
-    Description: ARN of the AmazonEKS_EBS_CSI_DriverRole
-    Value: !GetAtt EKSEBSCSIDriverRole.Arn
 
   EKSCLUSTERNAME:
     Value: !Ref ControlPlane

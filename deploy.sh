@@ -1,8 +1,13 @@
 #!/bin/bash
 
 #set -x
+source .env
+
 function downLoad() {
-    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/.env
+    echo "You have Uploaded the .env file with relevent information filled, If not Please do and re run this Script again"
+    echo "Ctrl+C to kill script now and rerun it, Pausing for 30 Seconds.."
+    sleep 30
+    #curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/.env
     curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/deploy.sh
     curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/LN-lac-besu.yaml
     chmod +x deploy.sh
@@ -13,7 +18,7 @@ function downLoad() {
 
 function replaceVal() {
     tr -d '\r' < .env > .env-updated
-    cp .env-updated .env
+    mv .env-updated .env
     . .env
 
     sed -i -e "s/NAME_SPACE/$NAME_SPACE/g" LN-lac-besu.yaml
@@ -31,31 +36,42 @@ function k8sAccess() {
   aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 }
 
-function CreateBesuNode() {
-  kubectl apply -f LN-lac-besu.yaml
+
+function StorageAdd() {
+    . .env
+    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/ebs-csi-trust-policy.json
+    text=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text)
+    OIDC="${text##*/}"
+    AWSID=$(aws sts get-caller-identity |  jq -r '.Account')
+    sed -i -e "s/ACCOUNT_ID/$AWSID/g" ebs-csi-trust-policy.json
+    sed -i -e "s/OIDC/$OIDC/g" ebs-csi-trust-policy.json
+    sed -i -e "s/REGION/$REGION/g" ebs-csi-trust-policy.json
+    aws iam create-role --role-name AmazonEKS_EBS_CSI_DriverRole --assume-role-policy-document file://"ebs-csi-trust-policy.json"
+    aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy --role-name AmazonEKS_EBS_CSI_DriverRole
+    aws eks create-addon --cluster-name $CLUSTER_NAME --addon-name aws-ebs-csi-driver --service-account-role-arn arn:aws:iam::$AWSID:role/AmazonEKS_EBS_CSI_DriverRole
 }
 
-function Storageadd() {
-    . .env
-    aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text
-    text="https://oidc.eks.us-west-1.amazonaws.com/id/2AD02F9C9428E9681934A3A01C5F48C8"
-    OIDC="${text##*/}"
-    
-    AWSID=$(aws sts get-caller-identity |  jq '.Account')
+
+function CreateBesuNode() {
+
+  kubectl apply -f LN-lac-besu.yaml
+  echo "sleeping for 60 sec"
+  sleep 60
+  kubectl get pods -n $NAME_SPACE
+  kubectl logs -n $NAME_SPACE pod/besu-node-writer-0 -c writer-besu | grep "Enode URL"
+  kubectl logs -n $NAME_SPACE pod/besu-node-writer-0 -c writer-besu | grep "Node address"
+  kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"net_enode","params":[],"id":1}' http://$PUBLIC_IP:4545
+
+}
+
+function PodRestart() {
+    kubectl delete -n $NAME_SPACE pod/besu-node-writer-0 
+
+
 }
 
 downLoad
 replaceVal
 k8sAccess
+#StorageAdd
 CreateBesuNode
-
-# eksctl create iamserviceaccount \
-#     --name ebs-csi-controller-sa \
-#     --namespace kube-system \
-#     --cluster my-cluster \
-#     --role-name AmazonEKS_EBS_CSI_DriverRole \
-#     --role-only \
-#     --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
-#     --approve
-# eksctl create addon --name aws-ebs-csi-driver --cluster my-cluster --service-account-role-arn arn:aws:iam::111122223333:role/AmazonEKS_EBS_CSI_DriverRole --force
-# #   sudo yum install gettext -y
