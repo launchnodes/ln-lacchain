@@ -36,23 +36,10 @@ function k8sAccess() {
 }
 
 
-# function StorageAdd() {
-#     . .env
-#     curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/ebs-csi-trust-policy.json
-#     OIDC_url=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text)
-#     OIDC="${OIDC_url##*/}"
-#     AWSID=$(aws sts get-caller-identity |  jq -r '.Account')
-#     sed -i -e "s/ACCOUNT_ID/$AWSID/g" ebs-csi-trust-policy.json
-#     sed -i -e "s/OIDC/$OIDC/g" ebs-csi-trust-policy.json
-#     sed -i -e "s/REGION/$REGION/g" ebs-csi-trust-policy.json
-#     aws iam create-role --role-name AmazonEKS_EBS_CSI_DriverRole --assume-role-policy-document file://"ebs-csi-trust-policy.json"
-#     aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy --role-name AmazonEKS_EBS_CSI_DriverRole
-#     aws eks create-addon --cluster-name $CLUSTER_NAME --addon-name aws-ebs-csi-driver --service-account-role-arn arn:aws:iam::$AWSID:role/AmazonEKS_EBS_CSI_DriverRole
-# }
-
 function oidcProviderAccess() {
+  sudo yum install openssl -y
   OIDC_url=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text)
-  THUMBPRT=$(openssl s_client -showcerts -connect oidc.eks.us-west-1.amazonaws.com:443  </dev/null 2>/dev/null | openssl x509 -outform PEM | openssl x509 -noout -fingerprint | awk -F'=' '{ print $2 }' | sed 's/://g')
+  THUMBPRT=$(openssl s_client -showcerts -connect oidc.eks.$REGION.amazonaws.com:443  </dev/null 2>/dev/null | openssl x509 -outform PEM | openssl x509 -noout -fingerprint | awk -F'=' '{ print $2 }' | sed 's/://g')
   aws iam create-open-id-connect-provider --url $OIDC_url --thumbprint-list $THUMBPRT --client-id-list sts.amazonaws.com --region $REGION
   sleep 60
 }
@@ -61,7 +48,7 @@ function CreateBesuNode() {
 
   kubectl apply -f LN-lac-besu.yaml
   echo "sleeping for 60 sec"
-  sleep 30
+  sleep 60
   kubectl get pods -n $NAME_SPACE
   #kubectl logs -n $NAME_SPACE pod/besu-node-writer-0 -c writer-besu | grep "Node address"
   kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"net_enode","params":[],"id":1}' http://localhost:4545
@@ -80,5 +67,5 @@ function PodRestart() {
 downLoad
 replaceVal
 k8sAccess
-idcProviderAccess
+oidcProviderAccess
 CreateBesuNode
