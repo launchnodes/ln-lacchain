@@ -181,6 +181,11 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref RouteTable
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref RouteTable      
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -220,6 +225,7 @@ Resources:
       ManagedPolicyArns: 
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
         - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+
 
   #============================================================================#
   # Control plane security group
@@ -298,6 +304,8 @@ Resources:
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
+
+
   #============================================================================#
   # Add-ons: kube-proxy
   #============================================================================#
@@ -311,7 +319,6 @@ Resources:
   #============================================================================#
   # Add-ons: VPC CNI
   #============================================================================#
-  #     ServiceAccountRoleArn: !GetAtt ControlPlaneRole.Arn
   VpcCni:
     Type: AWS::EKS::Addon
     DependsOn: ControlPlane
@@ -337,21 +344,7 @@ Resources:
       Tags:
       - Key: eks_addon
         Value: True
-  # #============================================================================#
-  # # Add-ons: EBS - CSI
-  # #============================================================================#
-  EbsCsi:
-    Type: AWS::EKS::Addon
-    DependsOn: ControlPlane
-    Properties:
-      AddonName: aws-ebs-csi-driver
-      AddonVersion: v1.19.0-eksbuild.2
-      ClusterName: !Ref AWS::StackName
-      ResolveConflicts: OVERWRITE
-      ServiceAccountRoleArn: !GetAtt ControlPlaneRole.Arn
-      Tags:
-      - Key: eks_addon
-        Value: True  
+
   WorkerNodesRole:
     Type: AWS::IAM::Role
     Properties:
@@ -411,7 +404,6 @@ Resources:
         - ControlPlane
         - KubeProxyAddon
         - VpcCni
-        - EbsCsi
     Properties:
       ClusterName: !Sub "${AWS::StackName}"
       NodegroupName: WorkerNodegroup
@@ -430,6 +422,55 @@ Resources:
       Tags:
         Name: WorkerNodesLaunchTemplate
         Environment: Production
+
+  # #============================================================================#
+  # # Add-ons: EBS - CSI
+  # #============================================================================#
+  AmazonEKSEBSCSIDriverRole:
+    Type: AWS::IAM::Role
+    DependsOn: 
+      - ControlPlane
+      - WorkerNodegroup   
+    Properties:
+      RoleName: AmazonEKS_EBS_CSI_DriverRole
+      AssumeRolePolicyDocument: !Sub
+        - |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${OidcProviderEndpoint}"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "${OidcProviderEndpoint}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa",
+                            "${OidcProviderEndpoint}:aud": "sts.amazonaws.com"
+                        }
+                    }
+                }
+            ]
+          }
+        - OidcProviderEndpoint: !Select [1, !Split ["//", !GetAtt ControlPlane.OpenIdConnectIssuerUrl  ]]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy       
+  EbsCsi:
+    Type: AWS::EKS::Addon
+    DependsOn: 
+      - WorkerNodegroup     
+      - AmazonEKSEBSCSIDriverRole
+    Properties:
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: v1.19.0-eksbuild.2
+      ClusterName: !Ref AWS::StackName
+      ResolveConflicts: OVERWRITE
+      ServiceAccountRoleArn: !GetAtt AmazonEKSEBSCSIDriverRole.Arn
+      Tags:
+      - Key: eks_addon
+        Value: True  
+
 #
 Outputs:
   EIPAllocationId:
@@ -447,4 +488,5 @@ Outputs:
   AWSAccountID: 
     Value: !Ref AWS::AccountId
     Description: AWS Account ID for Ref
-   
+  OIDCUrlID:
+    Value: !GetAtt ControlPlane.OpenIdConnectIssuerUrl
