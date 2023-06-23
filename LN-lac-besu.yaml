@@ -223,6 +223,8 @@ metadata:
   namespace: NAME_SPACE
 spec:
   type: LoadBalancer
+  externalIPs:
+    - "PUBLIC_IP"
   selector:
     app: besu-node-writer
     release: writer
