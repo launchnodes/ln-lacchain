@@ -7,8 +7,8 @@ function downLoad() {
     echo "You have Uploaded the .env file with relevent information filled, If not Please do and re run this Script again"
     echo "Ctrl+C to kill script now and rerun it, Pausing for 30 Seconds.."
     sleep 30
-    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/deploy.sh
-    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/LN-lac-besu.yaml
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/deploy.sh
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/LN-lac-besu.yaml
     chmod +x deploy.sh
     sleep 3
     
@@ -37,7 +37,11 @@ function k8sAccess() {
 
 
 function oidcProviderAccess() {
+  echo " It expects Openssl 3, if version is low it may not work,  you are expected to run this command from openssl 3"
+  echo "Installing openssl..."
   sudo yum install openssl -y
+  echo `openssl version`
+  echo "If you see the above version is less than 3,  Please refer this link to do manually."
   OIDC_url=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text)
   THUMBPRT=$(openssl s_client -showcerts -connect oidc.eks.$REGION.amazonaws.com:443  </dev/null 2>/dev/null | openssl x509 -outform PEM | openssl x509 -noout -fingerprint | awk -F'=' '{ print $2 }' | sed 's/://g')
   aws iam create-open-id-connect-provider --url $OIDC_url --thumbprint-list $THUMBPRT --client-id-list sts.amazonaws.com --region $REGION
