@@ -13,6 +13,8 @@ function set_global_variable() {
     else 
       echo "The '.env' file not available, Please update and upload to the CloudShell." 
     fi
+    tr -d '\r' < .env > .env-updated
+    mv .env-updated .env    
 }
 
 
@@ -27,8 +29,6 @@ function downLoad() {
 }
 
 function replaceVal() {
-    tr -d '\r' < .env > .env-updated
-    mv .env-updated .env
     . .env
     sed -i -e "s/NAME_SPACE/$NAME_SPACE/g" $deploy_net
     sed -i -e "s/STORAGE_SPACE/$STORAGE_SPACE/g" $deploy_net
