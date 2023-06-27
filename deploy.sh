@@ -18,9 +18,9 @@ function set_global_variable() {
 
 
 function downLoad() {
-    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/deploy.sh
-    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/ops.sh
-    curl -LJO https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/$deploy_net
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/deploy.sh
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/ops.sh
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/$deploy_net
     chmod +x deploy.sh ops.sh
     sleep 3
 

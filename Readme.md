@@ -147,7 +147,7 @@ Now proceed to Stage 3: Running the Script in AWS Cloud Shell.
 1. In the AWS Cloud Shell terminal, execute the following command to download and run the deployment script desired network:  select between ( mainnet / testnet)
 
    ```
-   source <(curl -s -L https://raw.githubusercontent.com/ravinayag/lacchain-eks/master/deploy.sh) testnet
+   source <(curl -s -L https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/deploy.sh) testnet
    ```
 
 2. The script will start running and deploying the necessary resources for the EKS cluster.
