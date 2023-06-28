@@ -485,5 +485,5 @@ Outputs:
     Value: !GetAtt ControlPlane.OpenIdConnectIssuerUrl
 
   STSAudienceName:
-    Value: "sts.awsamazon.com"
+    Value: "sts.amazonaws.com"
     Description: Audience Name for OIDC configuration
