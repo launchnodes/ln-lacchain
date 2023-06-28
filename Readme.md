@@ -122,7 +122,8 @@ Now proceed to Stage 3: Running the Script in AWS Cloud Shell.
 1. Access to the AWS Management Console.
 2. CloudFormation stack for EKS cluster successfully created.
 3. Identity provider Created.
-4. The `.env` file with required information obtained from the CloudFormation stack outputs.
+4. A Sample file `.env` is available at `https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/.env`
+5. The `.env` file with required information obtained from the CloudFormation stack outputs.
 
 ## Procedure
 
