@@ -54,8 +54,8 @@ function replaceVal() {
 function CreateBesuNode() {
   source .env
   kubectl apply -f $deploy_net
-  echo "sleeping for 60 sec"
-  sleep 60
+  echo "It may take 2 to 3 mins for the Pods Availability,  sleeping for 150 sec"
+  while [ "$(kubectl get pods -n $NAME_SPACE -l=app='besu-node-writer' -o jsonpath='{.items[*].status.containerStatuses[0].ready}')" != "true" ]; do    sleep 10;  echo "Waiting for pod to be ready."; done
   kubectl get pods -n $NAME_SPACE
   kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"net_enode","params":[],"id":1}' http://localhost:4545
   echo ""
