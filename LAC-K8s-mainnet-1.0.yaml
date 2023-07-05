@@ -123,7 +123,7 @@ data:
     # Permissioning
     permissions-nodes-contract-enabled=true
     permissions-nodes-contract-address="0x0000000000000000000000000000000000009999"
-    permissions-accounts-contract-enabled=true
+    permissions-accounts-contract-enabled=false
     permissions-accounts-contract-address="0x0000000000000000000000000000000000008888"
      # Permissioning end
 
