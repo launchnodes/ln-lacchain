@@ -10,10 +10,10 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: MarketPlaceServiceAccount
+  name: marketplaceserviceaccount
   namespace: NAME_SPACE
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::129548618114:policy/marketplace-registeruser
+    eks.amazonaws.com/role-arn: arn:aws:iam::aws:policy/AWSMarketplaceMeteringRegisterUsage
 
 ---
 # Source: besu-node/templates/node-storage.yaml
@@ -304,7 +304,7 @@ spec:
         app.kubernetes.io/instance: writer
         app.kubernetes.io/component: writer
     spec: #end  workerName     
-      serviceAccountName: MarketPlaceServiceAccount
+      serviceAccountName: marketplaceserviceaccount
       containers: #end node tessera
         - name: writer-relay-signer       
           image: lacnetnetworks/relay-signer-lacchain:1.0.1 
