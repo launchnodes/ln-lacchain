@@ -5,6 +5,16 @@ metadata:
   labels:
     kubernetes.io/metadata.name: NAME_SPACE
   name: NAME_SPACE
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: MarketPlaceServiceAccount
+  namespace: NAME_SPACE
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::129548618114:policy/marketplace-registeruser
+
 ---
 # Source: besu-node/templates/node-storage.yaml
 apiVersion: storage.k8s.io/v1
@@ -294,6 +304,7 @@ spec:
         app.kubernetes.io/instance: writer
         app.kubernetes.io/component: writer
     spec: #end  workerName     
+      serviceAccountName: MarketPlaceServiceAccount
       containers: #end node tessera
         - name: writer-relay-signer       
           image: lacnetnetworks/relay-signer-lacchain:1.0.1 
@@ -323,9 +334,9 @@ spec:
           resources:
             requests:
               cpu: 200m
-              memory: 512Mi
+              memory: 256Mi
             limits:
-              cpu: 500m
+              cpu: 400m
               memory: 1024Mi
           ports:
             - containerPort: 6010
@@ -354,7 +365,6 @@ spec:
             allowPrivilegeEscalation: false #end node writer #end  rotation       
         - name: writer-besu
           image: hyperledger/besu:21.1.6          
-          
           imagePullPolicy: IfNotPresent
           resources:
             requests:

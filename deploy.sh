@@ -41,33 +41,58 @@ function replaceVal() {
 }
 
 
-#This function deprecated due to AWS shell is not supporting.
-# function oidcProviderAccess() {
-#   sudo yum install openssl -y
-#   OIDC_url=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text)
-#   THUMBPRT=$(openssl s_client -showcerts -connect oidc.eks.$REGION.amazonaws.com:443  </dev/null 2>/dev/null | openssl x509 -outform PEM | openssl x509 -noout -fingerprint | awk -F'=' '{ print $2 }' | sed 's/://g')
-#   echo $THUMBPRT
-#   aws iam create-open-id-connect-provider --url $OIDC_url --thumbprint-list $THUMBPRT --client-id-list sts.amazonaws.com --region $REGION
-#   sleep 60
-# }
-
 function CreateBesuNode() {
   source .env
   kubectl apply -f $deploy_net
   echo "It may take 2 to 3 mins for the Pods Availability,  sleeping for 150 sec"
-  while [ "$(kubectl get pods -n $NAME_SPACE -l=app='besu-node-writer' -o jsonpath='{.items[*].status.containerStatuses[0].ready}')" != "true" ]; do    sleep 10;  echo "Waiting for pod to be ready."; done
+  while [ "$(kubectl get pods -n $NAME_SPACE -l=app='besu-node-writer' -o jsonpath='{.items[*].status.containerStatuses[0].started}')" != "true" ]; do    sleep 10;  echo "Waiting for pod to be ready."; done
   kubectl get pods -n $NAME_SPACE
+  sleep 20;
   kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"net_enode","params":[],"id":1}' http://localhost:4545
-  echo ""
-  echo -e "Share the ENODE address to LACChain Network team via email 'tech.support@lacnet.com' \n
-        You have to restart the services after Access granted by LACChain Team"
-  echo ""
+
 }
 
 function k8sAccess() {
   . .env
   aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 }
+
+function registerNetwork() {
+    
+    ENODE=$(kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"net_enode","params":[],"id":1}' http://localhost:4545 | grep enode)
+
+    sleep 1;
+
+    ADDRESS=$(kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"eth_coinbase","params":[],"id":53}' http://127.0.0.1:4545 | grep result)
+
+    #create file info
+
+    kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-besu -- touch /data/besu/permission.txt
+
+    kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-besu -- sh -c  "echo $ENODE>>/data/besu/permission.txt"
+
+    kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-besu -- sh -c  "echo $ADDRESS>>/data/besu/permission.txt"
+    
+    arrIN=(${ADDRESS//'"result" :'/ }) 
+    ADDRESS2=${arrIN[0]}
+    arrIN=(${ENODE//'"result" :'/ }) 
+    ENODE2=${arrIN[0]}
+    
+    if [ "$1" == "mainnet" ]; then
+      echo "Contact our premeier launchnode support team for mainnet"
+    elif [ "$1" == "testnet" ]; then
+      curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS", "network":"Open Protestnet", "membership":"Premium", "address":'$ADDRESS2', "enode":'$ENODE2'}' --insecure
+    else
+      echo -e "Invalid Network $deploy_net selected / Not a valid network provided \n 
+                #### Select only from 'mainnet' or 'testnet' ####"
+    fi
+
+    echo ""
+    echo -e "Share the ENODE address to LACChain Network team via email 'tech.support@lacnet.com' \n
+          You have to restart the services after Access granted by LACChain Team"
+    echo ""
+}
+
 
 
 function selectNetwork() {
@@ -78,6 +103,7 @@ function selectNetwork() {
       k8sAccess
       replaceVal
       CreateBesuNode
+      registerNetwork
     elif [ "$1" == "testnet" ]; then
       deploy_net=$testnet
       echo $deploy_net
@@ -85,12 +111,14 @@ function selectNetwork() {
       k8sAccess
       replaceVal
       CreateBesuNode
+      registerNetwork
     else
       echo -e "Invalid Network $deploy_net selected / Not a valid network provided \n 
                 #### Select only from 'mainnet' or 'testnet' ####"
     fi
 
 }
+
 
 set_global_variable
 selectNetwork $1
