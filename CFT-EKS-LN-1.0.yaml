@@ -221,8 +221,6 @@ Resources:
       ManagedPolicyArns: 
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
         - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
-
-
   #============================================================================#
   # Control plane security group
   #============================================================================#
@@ -300,8 +298,6 @@ Resources:
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
-
-
   #============================================================================#
   # Add-ons: kube-proxy
   #============================================================================#
@@ -340,7 +336,6 @@ Resources:
       Tags:
       - Key: eks_addon
         Value: True
-
   WorkerNodesRole:
     Type: AWS::IAM::Role
     Properties:
@@ -415,7 +410,6 @@ Resources:
       Tags:
         Name: WorkerNodesLaunchTemplate
         Environment: Production
-
   # #============================================================================#
   # # Add-ons: EBS - CSI
   # #============================================================================#
@@ -448,7 +442,7 @@ Resources:
           }
         - OidcProviderEndpoint: !Select [1, !Split ["//", !GetAtt ControlPlane.OpenIdConnectIssuerUrl  ]]
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy       
+        - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
   EbsCsi:
     Type: AWS::EKS::Addon
     DependsOn: 
@@ -463,25 +457,36 @@ Resources:
       Tags:
       - Key: eks_addon
         Value: True  
-  MarketPlacePolicy:
-    Type: AWS::IAM::Policy
+  AmazonLNMeterRole:
+    Type: AWS::IAM::Role
+    DependsOn: 
+      - ControlPlane
+      - WorkerNodegroup   
     Properties:
-      PolicyName: MarketPlacePolicy
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action:
-              - "aws-marketplace:MeterUsage"
-              - "aws-marketplace:RegisterUsage"
-            Resource: "*"
-  MarketPlaceServiceAccount:
-    Type: AWS::IAM::ServiceAccount
-    Properties:
-      Name: MarketPlaceServiceAccount
-      Namespace: default
-      ClusterName: !Sub "${AWS::StackName}"
-      PolicyArn: !Ref MarketPlacePolicy
+      RoleName: AmazonLNMeterRole
+      AssumeRolePolicyDocument: !Sub
+        - |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${OidcProviderEndpoint}"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "${OidcProviderEndpoint}:sub": "system:serviceaccount:kube-system:marketplace-sa",
+                            "${OidcProviderEndpoint}:aud": "sts.amazonaws.com"
+                        }
+                    }
+                }
+            ]
+          }
+        - OidcProviderEndpoint: !Select [1, !Split ["//", !GetAtt ControlPlane.OpenIdConnectIssuerUrl  ]]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSMarketplaceMeteringRegisterUsage
 #
 Outputs:
   EIPAllocationId:

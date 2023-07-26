@@ -23,6 +23,7 @@ function downLoad() {
     curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/deploy.sh
     curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/ops.sh
     curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/$deploy_net
+    Account_ID=$(aws sts get-caller-identity --query "Account" --output text)
     chmod +x deploy.sh ops.sh
     sleep 3
 
@@ -35,6 +36,7 @@ function replaceVal() {
     sed -i -e "s/PUBLIC_IP/$PUBLIC_IP/g" $deploy_net
     sed -i -e "s/NODE_NAME/$NODE_NAME/g" $deploy_net
     sed -i -e "s/EMAIL_ID/$EMAIL_ID/g" $deploy_net
+    sed -i -e "s/Account_ID/$Account_ID/g" $deploy_net
 
     tr -d '\r' < $deploy_net > $deploy_net-updated.yaml
     mv $deploy_net-updated.yaml $deploy_net
@@ -44,16 +46,16 @@ function replaceVal() {
 function CreateBesuNode() {
   source .env
   kubectl apply -f $deploy_net
-  echo "It may take 2 to 3 mins for the Pods Availability,  sleeping for 150 sec"
+  echo -e "\n It may take 2 to 3 mins for the Pods Availability,  sleeping for 150 sec"
   while [ "$(kubectl get pods -n $NAME_SPACE -l=app='besu-node-writer' -o jsonpath='{.items[*].status.containerStatuses[0].started}')" != "true" ]; do    sleep 10;  echo "Waiting for pod to be ready."; done
-  echo -e "Get Pods Status...\n"
+  echo -e "\n Get Pods Status..."
   kubectl get pods -n $NAME_SPACE
   sleep 20;
-  echo -e "Your Enode Address...\n"
+  echo -e "\n Your Enode Address..."
   kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"net_enode","params":[],"id":1}' http://localhost:4545
   echo ""
   sleep 1;
-  echo -e "Your Wallet Address...\n"
+  echo -e "\n Your Wallet Address..."
   kubectl exec -it pod/besu-node-writer-0 -n $NAME_SPACE  -c writer-nginx -- curl -X POST --data '{"jsonrpc":"2.0","method":"eth_coinbase","params":[],"id":53}' http://127.0.0.1:4545
 }
 
@@ -84,8 +86,7 @@ function registerNetwork() {
     declare -g ENODE2=${arrIN[0]}
     
 
-    echo ""
-    echo -e "Share the ENODE address to LACChain Network team via email 'tech.support@lacnet.com'
+    echo -e "\n Share the ENODE address to LACChain Network team via email 'tech.support@lacnet.com'
     \n You have to restart the services after Access granted by LACChain Team"
     echo ""
 }
@@ -112,6 +113,7 @@ function selectNetwork() {
       registerNetwork
       echo -e "Registering Node...\n"
       curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS", "network":"Open Protestnet", "membership":"Premium", "address":'$ADDRESS2', "enode":'$ENODE2'}' --insecure
+      echo -e "\n"
     else
 
       echo -e "Invalid Network $deploy_net selected / Not a valid network provided \n

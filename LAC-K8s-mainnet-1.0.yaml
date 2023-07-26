@@ -5,6 +5,14 @@ metadata:
   labels:
     kubernetes.io/metadata.name: NAME_SPACE
   name: NAME_SPACE
+---  
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: marketplace-sa
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::Account_ID:role/AmazonLNMeterRole
 ---
 # Source: besu-node/templates/node-storage.yaml
 apiVersion: storage.k8s.io/v1
@@ -448,3 +456,37 @@ spec:
         - name: ethstats-data
           persistentVolumeClaim:
             claimName: besu-node-writer-ethstats-main-pvc
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name:  aws-ln-metering
+  labels:
+    app:  aws-ln-metering
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aws-ln-metering
+  template:
+    metadata:
+      labels:
+        app: aws-ln-metering
+    spec:
+      serviceAccountName: marketplace-sa
+      containers:
+        - name: aws-ln-metering
+          image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/launch-nodes/lacchainmetering:v1
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
+          ports:
+            - containerPort: 6010
+              name: meter
+              protocol: TCP
