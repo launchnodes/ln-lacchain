@@ -516,5 +516,5 @@ Outputs:
     Value: "sts.amazonaws.com"
     Description: Audience Name for OIDC configuration
 
-  MPServiceAccountARN:
-    Value: !Ref MarketPlacePolicy
+  # MPServiceAccountARN:
+  #   Value: !Ref MarketPlacePolicy
