@@ -466,7 +466,6 @@ metadata:
     app:  aws-ln-meter
   namespace: kube-system
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: aws-ln-meter
