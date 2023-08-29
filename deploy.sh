@@ -102,6 +102,7 @@ function selectNetwork() {
       CreateBesuNode
       registerNetwork
       echo "Registering Node..."
+      curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS","network":"Mainnet", "membership":"Premium", "address": '$ADDRESS2',"enode":'$ENODE2'}' --insecure
       echo "Contact our premeier launchnode support team for mainnet registration"
     elif [ "$1" == "testnet" ]; then
       deploy_net=$testnet
