@@ -476,7 +476,7 @@ spec:
       serviceAccountName: marketplace-sa
       containers:
         - name: aws-ln-metering
-          image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/launch-nodes/mainnetmetering:v1
+          image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/launch-nodes/mainnetmetering:v6
           imagePullPolicy: IfNotPresent
           resources:
             requests:
