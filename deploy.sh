@@ -23,6 +23,7 @@ function downLoad() {
     curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/deploy.sh
     curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/ops.sh
     curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/$deploy_net
+    curl -LJO https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/aws/deploy.yaml
     Account_ID=$(aws sts get-caller-identity --query "Account" --output text)
     chmod +x deploy.sh ops.sh
     sleep 3
@@ -62,6 +63,8 @@ function CreateBesuNode() {
 function k8sAccess() {
   . .env
   aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
+  sleep 20;
+  kubectl apply -f apply.yaml  && sleep 20 && rm apply.yaml
 }
 
 function registerNetwork() {
