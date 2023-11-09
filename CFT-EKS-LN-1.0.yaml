@@ -360,7 +360,7 @@ Resources:
   WorkerNodesLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: WorkerNodesLaunchTemplate
+      LaunchTemplateName: !Sub "WorkerNodesLaunchTemplate_${AWS::StackName}"
       LaunchTemplateData:
         ImageId: !Sub '{{resolve:ssm:/aws/service/eks/optimized-ami/${EKSClusterVersion}/amazon-linux-2/recommended/image_id}}'
         InstanceType: !Ref WorkerNodesInstanceType      
@@ -408,7 +408,7 @@ Resources:
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
       Tags:
-        Name: WorkerNodesLaunchTemplate
+        Name: !Sub "WorkerNodesLaunchTemplate_${AWS::StackName}"
         Environment: Production
   # #============================================================================#
   # # Add-ons: EBS - CSI
