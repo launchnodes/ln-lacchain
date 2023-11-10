@@ -33,7 +33,6 @@ metadata:
   namespace: kube-system
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::Account_ID:role/AmazonLNMeterRole
-
 ---
 # Source: besu-node/templates/node-storage.yaml
 apiVersion: storage.k8s.io/v1
@@ -338,7 +337,7 @@ spec:
           ports:
             - containerPort: 9001
               name: relay-signer
-              protocol: TCP           
+              protocol: TCP
         - name: writer-nginx
           image:  lacnetnetworks/writer-nginx-lacchain:1.0.0
           imagePullPolicy: IfNotPresent
@@ -368,7 +367,7 @@ spec:
             - name: BESU_RPC_WS_PORT
               value: "4546"
             - name: BESU_GRAPHQL_HTTP_PORT
-              value: "4547"          
+              value: "4547"
             - name: POD_IP
               valueFrom:
                 fieldRef:

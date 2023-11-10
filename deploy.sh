@@ -20,10 +20,9 @@ function set_global_variable() {
 
 
 function downLoad() {
-    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/dev/deploy.sh
-    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/dev/ops.sh
-    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/dev/$deploy_net
-    curl -LJO https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/aws/deploy.yaml
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/deploy.sh
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/ops.sh
+    curl -LJO https://raw.githubusercontent.com/launchnodes/ln-lacchain/master/$deploy_net
     Account_ID=$(aws sts get-caller-identity --query "Account" --output text)
     chmod +x deploy.sh ops.sh
     sleep 3
@@ -63,8 +62,8 @@ function CreateBesuNode() {
 function k8sAccess() {
   . .env
   aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
-  sleep 20;
-  #kubectl apply -f deploy.yaml  && sleep 20 && rm deploy.yaml
+  sleep 10;
+  
 }
 
 function registerNetwork() {
@@ -107,6 +106,9 @@ function selectNetwork() {
       echo "Registering Node..."
       curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS","network":"Mainnet", "membership":"Premium", "address": '$ADDRESS2',"enode":'$ENODE2'}' --insecure
       echo "Contact our premeier launchnode support team for mainnet registration"
+      echo -e "\n"
+      echo "You Public DNS for RPC Calls.."
+      kubectl get svc -A -o json | jq -r '.items[] | select(.spec.type=="LoadBalancer") | .status.loadBalancer.ingress[0]'
     elif [ "$1" == "testnet" ]; then
       deploy_net=$testnet
       echo $deploy_net
@@ -118,6 +120,9 @@ function selectNetwork() {
       echo -e "Registering Node...\n"
       curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS", "network":"Open Protestnet", "membership":"Premium", "address":'$ADDRESS2', "enode":'$ENODE2'}' --insecure
       echo -e "\n"
+      echo "You Public DNS for RPC Calls.."
+      kubectl get svc -A -o json | jq -r '.items[] | select(.spec.type=="LoadBalancer") | .status.loadBalancer.ingress[0]'
+
     else
 
       echo -e "Invalid Network $deploy_net selected / Not a valid network provided \n
