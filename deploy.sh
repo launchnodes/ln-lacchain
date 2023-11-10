@@ -62,6 +62,8 @@ function CreateBesuNode() {
 function k8sAccess() {
   . .env
   aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
+  sleep 10;
+  
 }
 
 function registerNetwork() {
@@ -104,6 +106,9 @@ function selectNetwork() {
       echo "Registering Node..."
       curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS","network":"Mainnet", "membership":"Premium", "address": '$ADDRESS2',"enode":'$ENODE2'}' --insecure
       echo "Contact our premeier launchnode support team for mainnet registration"
+      echo -e "\n"
+      echo "You Public DNS for RPC Calls.."
+      kubectl get svc -A -o json | jq -r '.items[] | select(.spec.type=="LoadBalancer") | .status.loadBalancer.ingress[0]'
     elif [ "$1" == "testnet" ]; then
       deploy_net=$testnet
       echo $deploy_net
@@ -115,6 +120,9 @@ function selectNetwork() {
       echo -e "Registering Node...\n"
       curl --location --request POST 'https://api.backoffice.lac-net.net/market' --header 'Content-Type: application/json' --data-raw '{ "market":"AWS", "network":"Open Protestnet", "membership":"Premium", "address":'$ADDRESS2', "enode":'$ENODE2'}' --insecure
       echo -e "\n"
+      echo "You Public DNS for RPC Calls.."
+      kubectl get svc -A -o json | jq -r '.items[] | select(.spec.type=="LoadBalancer") | .status.loadBalancer.ingress[0]'
+
     else
 
       echo -e "Invalid Network $deploy_net selected / Not a valid network provided \n

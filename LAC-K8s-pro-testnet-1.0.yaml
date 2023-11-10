@@ -5,6 +5,25 @@ metadata:
   labels:
     kubernetes.io/metadata.name: NAME_SPACE
   name: NAME_SPACE
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: besu-writer
+  namespace: NAME_SPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: besu-node-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: besu-writer
+  namespace: NAME_SPACE
 
 ---
 apiVersion: v1
@@ -14,7 +33,6 @@ metadata:
   namespace: kube-system
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::Account_ID:role/AmazonLNMeterRole
-
 ---
 # Source: besu-node/templates/node-storage.yaml
 apiVersion: storage.k8s.io/v1
@@ -218,14 +236,14 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
-  name: besu-node-writer
+  name: besu-node-writer-svc
   labels:
-    app: besu-node-writer
+    app: besu-node-writer-svc
     chart: besu-node-0.1.0
     release: writer
     heritage: Helm
     namespace: NAME_SPACE
-    app.kubernetes.io/name: besu-node-writer
+    app.kubernetes.io/name: besu-node-writer-svc
     helm.sh/chart: besu-node-0.1.0
     app.kubernetes.io/instance: writer
     app.kubernetes.io/managed-by: Helm
@@ -262,7 +280,7 @@ spec:
       port: 80
       targetPort: nginx
       protocol: TCP
-  loadBalancerIP: PUBLIC_IP
+  #loadBalancerIP: PUBLIC_IP
 ---
 # Source: besu-node/templates/node-statefulset.yaml
 apiVersion: apps/v1
@@ -303,18 +321,11 @@ spec:
         app.kubernetes.io/name: besu-node-writer
         app.kubernetes.io/instance: writer
         app.kubernetes.io/component: writer
-    spec: #end  workerName
-      containers: #end node tessera
+    spec: 
+      containers: 
         - name: writer-relay-signer       
-          image: lacnetnetworks/relay-signer-lacchain:1.0.1 
+          image: lacnetnetworks/relay-signer-lacchain:1.0.2
           imagePullPolicy: IfNotPresent
-          resources:
-            requests:
-              cpu: 150m
-              memory: 512Mi
-            limits:
-              cpu: 500m
-              memory: 1024Mi
           env:
           - name: HOST_BESU
             value: localhost
@@ -326,17 +337,10 @@ spec:
           ports:
             - containerPort: 9001
               name: relay-signer
-              protocol: TCP           
+              protocol: TCP
         - name: writer-nginx
           image:  lacnetnetworks/writer-nginx-lacchain:1.0.0
           imagePullPolicy: IfNotPresent
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 500m
-              memory: 1024Mi
           env:
           - name: HOST_RELAY_SIGNER
             value: localhost
@@ -347,18 +351,23 @@ spec:
               name: nginx
               protocol: TCP
           securityContext:
-            allowPrivilegeEscalation: false #end node writer #end  rotation       
+            allowPrivilegeEscalation: false 
         - name: writer-besu
-          image: hyperledger/besu:21.1.6
+          image: lacnetnetworks/lacchain-besu:23.4.1
           imagePullPolicy: IfNotPresent
-          resources:
-            requests:
-              cpu: "0.5"
-              memory: "1G"
-            limits:
-              cpu: "2"
-              memory: "3G"
           env:
+            - name: BESU_LOGGING
+              value: INFO
+            - name: BESU_P2P_HOST
+              value: "PUBLIC_IP"
+            - name: BESU_P2P_PORT
+              value: "60606"
+            - name: BESU_RPC_HTTP_PORT
+              value: "4545"
+            - name: BESU_RPC_WS_PORT
+              value: "4546"
+            - name: BESU_GRAPHQL_HTTP_PORT
+              value: "4547"
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -414,7 +423,7 @@ spec:
         configMap:
           name: besu-node-writer-besu-config
 ---
-# Source: besu-node/templates/node-statefulset.yaml
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -446,7 +455,7 @@ spec:
           args:
             - |
              exec
-             ./bin/ethstats-cli.js -vd --register --account-email EMAIL_ID --node-name NODE_NAME --server-url  http://34.138.63.51:3000 --client-url ws://besu-node-writer:4546   
+             ./bin/ethstats-cli.js -vd --register --account-email EMAIL_ID --node-name NODE_NAME --server-url  http://34.138.63.51:3000 --client-url ws://besu-node-writer-svc:4546   
           ports:
             - containerPort: 9001
               name: ethstats

@@ -360,7 +360,7 @@ Resources:
   WorkerNodesLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: WorkerNodesLaunchTemplate
+      LaunchTemplateName: !Sub "WorkerNodesLaunchTemplate_${AWS::StackName}"
       LaunchTemplateData:
         ImageId: !Sub '{{resolve:ssm:/aws/service/eks/optimized-ami/${EKSClusterVersion}/amazon-linux-2/recommended/image_id}}'
         InstanceType: !Ref WorkerNodesInstanceType      
@@ -408,7 +408,7 @@ Resources:
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
       Tags:
-        Name: WorkerNodesLaunchTemplate
+        Name: !Sub "WorkerNodesLaunchTemplate_${AWS::StackName}"
         Environment: Production
   # #============================================================================#
   # # Add-ons: EBS - CSI
@@ -419,7 +419,7 @@ Resources:
       - ControlPlane
       - WorkerNodegroup   
     Properties:
-      RoleName: AmazonEKS_EBS_CSI_DriverRole
+      RoleName: !Sub "AmazonEKS_EBS_CSI_DriverRole_${AWS::StackName}"
       AssumeRolePolicyDocument: !Sub
         - |
           {
@@ -463,7 +463,7 @@ Resources:
       - ControlPlane
       - WorkerNodegroup   
     Properties:
-      RoleName: AmazonLNMeterRole
+      RoleName: !Sub "AmazonLNMeterRole_${AWS::StackName}"
       AssumeRolePolicyDocument: !Sub
         - |
           {
