@@ -109,6 +109,7 @@ function selectNetwork() {
       echo -e "\n"
       echo "You Public DNS for RPC Calls.."
       kubectl get svc -A -o json | jq -r '.items[] | select(.spec.type=="LoadBalancer") | .status.loadBalancer.ingress[0]'
+      echo -e "\n" "\n"
     elif [ "$1" == "testnet" ]; then
       deploy_net=$testnet
       echo $deploy_net
@@ -122,11 +123,12 @@ function selectNetwork() {
       echo -e "\n"
       echo "You Public DNS for RPC Calls.."
       kubectl get svc -A -o json | jq -r '.items[] | select(.spec.type=="LoadBalancer") | .status.loadBalancer.ingress[0]'
-
+      echo -e "\n" "\n"
     else
 
       echo -e "Invalid Network $deploy_net selected / Not a valid network provided \n
                 \n #### Select only from 'mainnet' or 'testnet' ####"
+      echo -e "\n" "\n"
     fi
 
 }
