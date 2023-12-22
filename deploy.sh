@@ -3,8 +3,8 @@
 
 file=".env" 
 function set_global_variable() {
-    declare -g mainnet="LAC-K8s-mainnet-1.0.yaml"
-    declare -g testnet="LAC-K8s-pro-testnet-1.0.yaml"    
+    declare -g mainnet="LAC-K8s-mainnet-1.1.yaml"
+    declare -g testnet="LAC-K8s-pro-testnet-1.1.yaml"    
     if [[ -f $file  ]] 
     then 
         echo "You have Uploaded the .env file with relevent information filled, If not Please do and re run this Script again"
