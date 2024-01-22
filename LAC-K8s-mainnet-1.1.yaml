@@ -330,7 +330,7 @@ spec:
           - name: HOST_BESU
             value: localhost
           - name: CONTRACT_ADDRESS
-            value:  0x7a4363E55Ef04e9144a2B187ACA804631A3155B5
+            value: 0xEAA5420AF59305c5ecacCB38fcDe70198001d147
           volumeMounts:
             - name: data
               mountPath: /opt/secret
